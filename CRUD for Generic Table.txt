@@ -1,0 +1,64 @@
+" CRUD for Generic Table
+
+CLASS lcl_crud DEFINITION.
+  PUBLIC SECTION.
+  METHODS :
+           CREATE IMPORTING is_data TYPE REF TO DATA,
+            READ EXPORTING rs_data2 TYPE REF TO DATA ,
+            UPDATE IMPORTING is_data3 TYPE REF TO DATA,
+            DELETE IMPORTING is_data4 TYPE REF TO DATA.
+  DATA : lv_tablename TYPE tabname.
+ ENDCLASS.
+
+CLASS lcl_crud IMPLEMENTATION.
+  METHOD CREATE.
+    INSERT (lv_tablename) FROM @is_data->*.
+    IF SY-SUBRC = 0.
+        WRITE : 'CREATE'.
+      ENDIF.
+  ENDMETHOD.
+  METHOD READ.
+    CREATE DATA rs_data2 type (lv_tablename).
+    SELECT SINGLE * FROM (lv_tablename) INTO @rs_data2->*.
+      IF SY-SUBRC = 0.
+        WRITE : 'READ'.
+      ENDIF.
+  ENDMETHOD.
+  METHOD UPDATE.
+    UPDATE (lv_tablename) FROM @is_data3->*.
+    IF SY-SUBRC = 0.
+        WRITE : 'UPDATE'.
+      ENDIF.
+  ENDMETHOD.
+  METHOD DELETE.
+    DELETE (lv_tablename) FROM  @is_data4->*.
+    IF SY-SUBRC = 0.
+        WRITE : 'DELETE'.
+      ENDIF.
+  ENDMETHOD.
+ ENDCLASS.
+
+ START-OF-SELECTION.
+ data(lo_obj) = new lcl_crud( ).
+
+ lo_obj->lv_tablename = 'zmu_t_sales'.
+
+ DATA : ls_data TYPE REF TO zmu_t_sales.
+  CREATE DATA ls_data.
+ ls_data->CUSTOMER = 'MAHAN'.
+ ls_data->VBELN = 1230945.
+lo_obj->CREATE( EXPORTING is_data = ls_data ).
+
+DATA : ls_data2 TYPE TABLE OF zmu_t_sales.
+lo_obj->READ( IMPORTING rs_data2 = ls_data2 ).
+
+ DATA : ls_data3 TYPE REF TO zmu_t_sales.
+ CREATE DATA ls_data3.
+ ls_data3->CUSTOMER = 'OOGYY'.
+ ls_data3->VBELN = 123087.
+lo_obj->UPDATE( EXPORTING is_data3 = ls_data3 ).
+
+ DATA : ls_data4 TYPE REF TO zmu_t_sales.
+ CREATE DATA ls_data4.
+ ls_data4->CUSTOMER = 'Murthy'.
+lo_obj->DELETE( EXPORTING is_data4 = ls_data4 ).
