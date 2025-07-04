@@ -31,7 +31,7 @@ AT SELECTION-SCREEN OUTPUT .
   ENDLOOP.
 
 
-*INCLUDE zbp_inc_class.
+*INCLUDE zbp_inc_class.   "[ Written Down]
 "-----------
 
 CLASS lcl_db DEFINITION .
