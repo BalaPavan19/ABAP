@@ -1,0 +1,155 @@
+" ABAP OOPS CRUD Operations
+
+PARAMETERS : p_crud TYPE ZBP_DEL_ACTION AS LISTBOX VISIBLE LENGTH 10.
+PARAMETERS : p_crt RADIOBUTTON GROUP grp1,
+             p_rd  RADIOBUTTON GROUP grp1,
+             p_del RADIOBUTTON GROUP grp1,
+             p_mod RADIOBUTTON GROUP grp1.
+PARAMETERS : p_ordnum TYPE vbeln,
+             p_cstnam TYPE kunnr,
+             p_matnam TYPE matnr,
+             p_crtdon TYPE erdat.
+DATA : ls_str type ZMU_DEL_STR .
+AT SELECTION-SCREEN OUTPUT .
+  LOOP AT SCREEN.
+    IF p_crud = 'CREATE' .
+      IF screen-name = 'P_CSTNAM' OR screen-name = 'P_MATNAM' OR screen-name = 'P_CRTDON' .
+        screen-active = 0 .
+        MODIFY SCREEN .
+      ENDIF.
+    ELSEIF p_crud = 'DELETE'  .
+      IF screen-name = 'P_CSTNAM' OR screen-name = 'P_MATNAM' OR screen-name = 'P_CRTDON' .
+        screen-active = 0 .
+        MODIFY SCREEN .
+      ENDIF.
+    ELSEIF p_crud = 'MODIFY'  .
+      IF screen-name = 'P_CSTNAM'  OR screen-name = 'P_CRTDON' .
+        screen-active = 0 .
+        MODIFY SCREEN .
+      ENDIF.
+    ENDIF.
+  ENDLOOP.
+
+
+*INCLUDE zbp_inc_class.
+"-----------
+
+CLASS lcl_db DEFINITION .
+  PUBLIC SECTION .
+  DATA : t_tab1 type ZMU_TL_DATA .
+  DATA : s_struct type  ZMU_DEL_STR .
+  METHODS : constructor .
+  METHODS : create_data
+                IMPORTING
+                  iv_ordnum type vbeln
+                  iv_cust   type kunnr
+                  iv_mat    type matnr
+                  iv_plcdon type erdat,
+            read_data
+                IMPORTING
+                  iv_ordnum TYPE vbeln
+                EXPORTING
+                  es_struct1 type ZMU_DEL_STR,
+            delete_data
+                IMPORTING
+                  iv_ordnum type vbeln,
+            modify_data
+                IMPORTING
+                  iv_ordnum type vbeln
+                  iv_mat    type matnr .
+
+ENDCLASS .
+
+CLASS lcl_db IMPLEMENTATION .
+
+  METHOD constructor .
+    select
+      vbak~vbeln as ORDERNUM ,
+      vbak~kunnr as CUSTNAME ,
+      vbap~matnr as MATERIAL ,
+      vbak~erdat as CREATEDON
+    from
+      vbak
+      INNER JOIN
+      vbap
+      on vbak~vbeln = vbap~vbeln
+      INTO TABLE @t_tab1
+      up to 10 rows.
+  ENDMETHOD .
+
+  METHOD create_data .
+    clear s_struct .         " clearing workArea..
+    IF iv_ordnum is INITIAL.
+      RETURN .
+    ENDIF.
+    s_struct-ordernum = iv_ordnum .
+    s_struct-custname = iv_cust   .
+    s_struct-material = iv_mat    .
+    s_struct-createdon = iv_plcdon .
+    insert s_struct INTO TABLE t_tab1 .
+    cl_demo_output=>write( 'After insertion' ).
+    cl_demo_output=>write( t_tab1 ).
+      cl_demo_output=>display( ).
+  ENDMETHOD .
+
+  METHOD read_data .
+    clear es_struct1 .            " clearing workArea..
+    IF iv_ordnum is INITIAL  .
+      RETURN.
+    ENDIF.
+    READ TABLE t_tab1 INTO es_struct1 WITH  KEY ordernum = iv_ordnum .
+    IF sy-subrc <> 0.
+      cl_demo_output=>write( 'No data Found Available data ' ).
+      cl_demo_output=>write( t_tab1 ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD delete_data .
+    IF iv_ordnum is INITIAL .
+      return .
+    ENDIF.
+    delete t_tab1 where ordernum = iv_ordnum .
+  ENDMETHOD .
+
+  METHOD modify_data .
+    CLEAR s_struct.         " clearing workArea..
+    IF iv_ordnum is initial.
+      return .
+    ENDIF.
+    s_struct-material = iv_mat .
+    READ TABLE t_tab1 WITH KEY ordernum = iv_ordnum TRANSPORTING NO FIELDS .
+    MODIFY t_tab1 FROM s_struct INDEX sy-tabix TRANSPORTING material .
+    cl_demo_output=>display( t_tab1 ).
+  ENDMETHOD .
+
+ENDCLASS.
+"-----------
+
+START-OF-SELECTION .
+
+  DATA : lo_obj TYPE REF TO lcl_db .
+  CREATE OBJECT lo_obj.
+  IF p_crt is NOT INITIAL.
+    lo_obj->create_data(
+                EXPORTING
+                  iv_ordnum = p_ordnum
+                  iv_cust   = p_cstnam
+                  iv_mat    = p_matnam
+                  iv_plcdon = p_crtdon ).
+  ELSEIF p_rd is NOT INITIAL .
+    lo_obj->read_data(
+                 EXPORTING
+                  iv_ordnum = p_ordnum
+                 IMPORTING
+                   es_struct1 = ls_str ).
+  ELSEIF p_del IS NOT INITIAL .
+    lo_obj->delete_data(
+                    EXPORTING
+                      iv_ordnum = p_ordnum ).
+  ELSE .
+    lo_obj->modify_data(
+                    EXPORTING
+                      iv_ordnum = p_ordnum
+                      iv_mat    = p_matnam ).
+  ENDIF.
+  cl_demo_output=>display( ls_str ).
